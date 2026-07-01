@@ -1,0 +1,12 @@
+[
+  {
+    "guid": "d5f9c8a1-3e47-4b62-9c0d-8f2a6b7e5d13",
+    "name": "CleanPlay",
+    "description": "VidAngel-style content filtering (profanity, nudity, violence) using Jellyfin media segments.",
+    "overview": "Filter profanity, nudity and violence from your media.",
+    "owner": "",
+    "category": "General",
+    "imageUrl": "",
+    "versions": []
+  }
+]

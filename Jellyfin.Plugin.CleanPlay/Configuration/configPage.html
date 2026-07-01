@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>CleanPlay</title>
+</head>
+<body>
+<div id="CleanPlayConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-textarea">
+    <div data-role="content">
+        <div class="content-primary">
+
+            <form id="CleanPlaySettingsForm">
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">CleanPlay Settings</h2>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="chkEnableScan" />
+                        <span>Enable scheduled subtitle profanity scan</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">Scans your whole library daily and creates skip segments for profanity found in subtitles.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <textarea is="emby-textarea" id="txtWords" label="Profanity word list" rows="8" style="min-height:10em;"></textarea>
+                    <div class="fieldDescription">One word per line. A trailing * matches any ending (e.g. damn* matches damnit). Lines starting with # are ignored.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="text" id="txtLang" label="Preferred subtitle language (ISO 639-2)" />
+                    <div class="fieldDescription">e.g. eng, spa, fre. Used to pick which subtitle file to scan.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="txtPadBefore" label="Padding before cue (ms)" min="0" max="5000" />
+                </div>
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="txtPadAfter" label="Padding after cue (ms)" min="0" max="5000" />
+                </div>
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="txtMergeGap" label="Merge segments closer than (ms)" min="0" max="10000" />
+                </div>
+
+                <div class="selectContainer">
+                    <select is="emby-select" id="selProfanityType" label="Segment type for Profanity"></select>
+                    <div class="fieldDescription">Clients skip based on segment type. Default: Commercial. Set that type's action to "Skip" in each client's playback settings.</div>
+                </div>
+                <div class="selectContainer">
+                    <select is="emby-select" id="selNudityType" label="Segment type for Nudity"></select>
+                </div>
+                <div class="selectContainer">
+                    <select is="emby-select" id="selViolenceType" label="Segment type for Violence"></select>
+                </div>
+                <div class="selectContainer">
+                    <select is="emby-select" id="selOtherType" label="Segment type for Other"></select>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <span>Save</span>
+                    </button>
+                </div>
+            </form>
+
+            <br />
+            <div class="sectionTitleContainer flex align-items-center">
+                <h2 class="sectionTitle">Filter Editor</h2>
+            </div>
+            <div class="fieldDescription" style="margin-bottom:1em;">
+                Search for a movie or episode, then add skip segments manually, scan its subtitles for profanity, or import an EDL file.
+                Changes are applied to playback immediately.
+            </div>
+
+            <div class="inputContainer">
+                <input is="emby-input" type="text" id="txtSearch" label="Search your library" />
+            </div>
+            <button is="emby-button" type="button" id="btnSearch" class="raised emby-button"><span>Search</span></button>
+
+            <div id="searchResults" style="margin-top:1em;"></div>
+
+            <div id="editor" style="display:none; margin-top:1.5em; border-top:1px solid #444; padding-top:1em;">
+                <h3 id="editorTitle" style="margin-bottom:0.25em;"></h3>
+                <div id="editorSubtitle" class="fieldDescription" style="margin-bottom:1em;"></div>
+
+                <table style="width:100%; border-collapse:collapse;" id="segmentTable">
+                    <thead>
+                        <tr style="text-align:left; border-bottom:1px solid #666;">
+                            <th style="padding:0.4em;">Start</th>
+                            <th style="padding:0.4em;">End</th>
+                            <th style="padding:0.4em;">Category</th>
+                            <th style="padding:0.4em;">Source</th>
+                            <th style="padding:0.4em;">Note</th>
+                            <th style="padding:0.4em;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="segmentRows"></tbody>
+                </table>
+
+                <h4 style="margin-top:1.5em;">Add segment</h4>
+                <div style="display:flex; gap:0.75em; flex-wrap:wrap; align-items:flex-end;">
+                    <div class="inputContainer" style="flex:1; min-width:8em;">
+                        <input is="emby-input" type="text" id="txtStart" label="Start (h:mm:ss or seconds)" />
+                    </div>
+                    <div class="inputContainer" style="flex:1; min-width:8em;">
+                        <input is="emby-input" type="text" id="txtEnd" label="End (h:mm:ss or seconds)" />
+                    </div>
+                    <div class="selectContainer" style="flex:1; min-width:8em;">
+                        <select is="emby-select" id="selCategory" label="Category">
+                            <option value="Nudity">Nudity</option>
+                            <option value="Violence">Violence</option>
+                            <option value="Profanity">Profanity</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="inputContainer" style="flex:2; min-width:10em;">
+                        <input is="emby-input" type="text" id="txtNote" label="Note (optional)" />
+                    </div>
+                </div>
+                <button is="emby-button" type="button" id="btnAdd" class="raised button-submit emby-button"><span>Add segment</span></button>
+
+                <h4 style="margin-top:1.5em;">Tools</h4>
+                <div style="display:flex; gap:0.75em; flex-wrap:wrap;">
+                    <button is="emby-button" type="button" id="btnScan" class="raised emby-button"><span>Scan subtitles for profanity</span></button>
+                    <button is="emby-button" type="button" id="btnClear" class="raised button-cancel emby-button"><span>Clear all filters</span></button>
+                </div>
+
+                <h4 style="margin-top:1.5em;">Import EDL</h4>
+                <div class="fieldDescription">One entry per line: <code>start end action</code> (seconds). Example: <code>81.5 95.0 0</code></div>
+                <div class="inputContainer">
+                    <textarea is="emby-textarea" id="txtEdl" rows="4" style="min-height:6em;"></textarea>
+                </div>
+                <div class="selectContainer" style="max-width:16em;">
+                    <select is="emby-select" id="selEdlCategory" label="Import as category">
+                        <option value="Other">Other</option>
+                        <option value="Nudity">Nudity</option>
+                        <option value="Violence">Violence</option>
+                        <option value="Profanity">Profanity</option>
+                    </select>
+                </div>
+                <button is="emby-button" type="button" id="btnImportEdl" class="raised emby-button"><span>Import EDL</span></button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = 'd5f9c8a1-3e47-4b62-9c0d-8f2a6b7e5d13';
+            var segmentTypes = ['Commercial', 'Preview', 'Recap', 'Intro', 'Outro', 'Unknown'];
+            var currentItem = null;
+
+            function q(id) { return document.getElementById(id); }
+
+            function fillTypeSelect(sel) {
+                sel.innerHTML = segmentTypes.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('');
+            }
+
+            function fmtTime(totalSeconds) {
+                totalSeconds = Math.max(0, totalSeconds);
+                var h = Math.floor(totalSeconds / 3600);
+                var m = Math.floor((totalSeconds % 3600) / 60);
+                var s = (totalSeconds % 60).toFixed(1);
+                return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(4, '0');
+            }
+
+            function parseTime(text) {
+                text = (text || '').trim();
+                if (!text) return NaN;
+                var parts = text.split(':').map(function (p) { return parseFloat(p); });
+                if (parts.some(isNaN)) return NaN;
+                var seconds = 0;
+                for (var i = 0; i < parts.length; i++) {
+                    seconds = seconds * 60 + parts[i];
+                }
+                return seconds;
+            }
+
+            function api(method, path, body) {
+                var options = {
+                    type: method,
+                    url: ApiClient.getUrl('CleanPlay/' + path),
+                    dataType: 'json'
+                };
+                if (body !== undefined) {
+                    options.data = JSON.stringify(body);
+                    options.contentType = 'application/json';
+                }
+                return ApiClient.ajax(options).catch(function (err) {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert({ message: 'CleanPlay request failed (' + (err && err.status ? err.status : 'network') + ').' });
+                    throw err;
+                });
+            }
+
+            function loadConfig() {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    q('chkEnableScan').checked = !!config.EnableSubtitleScan;
+                    q('txtWords').value = config.ProfanityWords || '';
+                    q('txtLang').value = config.PreferredSubtitleLanguage || 'eng';
+                    q('txtPadBefore').value = config.PadBeforeMs;
+                    q('txtPadAfter').value = config.PadAfterMs;
+                    q('txtMergeGap').value = config.MergeGapMs;
+                    q('selProfanityType').value = config.ProfanitySegmentType || 'Commercial';
+                    q('selNudityType').value = config.NuditySegmentType || 'Commercial';
+                    q('selViolenceType').value = config.ViolenceSegmentType || 'Commercial';
+                    q('selOtherType').value = config.OtherSegmentType || 'Commercial';
+                    Dashboard.hideLoadingMsg();
+                });
+            }
+
+            function saveConfig(e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.EnableSubtitleScan = q('chkEnableScan').checked;
+                    config.ProfanityWords = q('txtWords').value;
+                    config.PreferredSubtitleLanguage = q('txtLang').value.trim() || 'eng';
+                    config.PadBeforeMs = parseInt(q('txtPadBefore').value, 10) || 0;
+                    config.PadAfterMs = parseInt(q('txtPadAfter').value, 10) || 0;
+                    config.MergeGapMs = parseInt(q('txtMergeGap').value, 10) || 0;
+                    config.ProfanitySegmentType = q('selProfanityType').value;
+                    config.NuditySegmentType = q('selNudityType').value;
+                    config.ViolenceSegmentType = q('selViolenceType').value;
+                    config.OtherSegmentType = q('selOtherType').value;
+                    ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+                return false;
+            }
+
+            function doSearch() {
+                var term = q('txtSearch').value.trim();
+                if (!term) return;
+                Dashboard.showLoadingMsg();
+                api('GET', 'Search?term=' + encodeURIComponent(term)).then(function (results) {
+                    Dashboard.hideLoadingMsg();
+                    var container = q('searchResults');
+                    if (!results.length) {
+                        container.innerHTML = '<div class="fieldDescription">No results.</div>';
+                        return;
+                    }
+                    container.innerHTML = results.map(function (r, i) {
+                        var label = r.Name + (r.Year ? ' (' + r.Year + ')' : '');
+                        if (r.Type === 'Episode' && r.Series) {
+                            label = r.Series + ' S' + (r.Season || '?') + 'E' + (r.Episode || '?') + ' — ' + r.Name;
+                        }
+                        var badge = r.FilterCount ? ' — ' + r.FilterCount + ' filter(s)' : '';
+                        return '<button is="emby-button" type="button" class="raised emby-button" style="display:block; width:100%; text-align:left; margin:0.25em 0;" data-index="' + i + '">' +
+                            '<span>' + label + badge + '</span></button>';
+                    }).join('');
+                    Array.prototype.forEach.call(container.querySelectorAll('button'), function (btn) {
+                        btn.addEventListener('click', function () {
+                            selectItem(results[parseInt(btn.getAttribute('data-index'), 10)]);
+                        });
+                    });
+                });
+            }
+
+            function selectItem(item) {
+                currentItem = item;
+                var label = item.Name + (item.Year ? ' (' + item.Year + ')' : '');
+                if (item.Type === 'Episode' && item.Series) {
+                    label = item.Series + ' S' + (item.Season || '?') + 'E' + (item.Episode || '?') + ' — ' + item.Name;
+                }
+                q('editorTitle').textContent = label;
+                q('editorSubtitle').textContent = item.RuntimeSeconds ? ('Runtime: ' + fmtTime(item.RuntimeSeconds)) : '';
+                q('editor').style.display = 'block';
+                loadFilters();
+            }
+
+            function loadFilters() {
+                if (!currentItem) return;
+                api('GET', 'Items/' + currentItem.Id + '/Filters').then(renderFilters);
+            }
+
+            function renderFilters(filters) {
+                var rows = q('segmentRows');
+                if (!filters.Segments.length) {
+                    rows.innerHTML = '<tr><td colspan="6" class="fieldDescription" style="padding:0.6em;">No filters yet.</td></tr>';
+                    return;
+                }
+                rows.innerHTML = filters.Segments.map(function (s) {
+                    return '<tr style="border-bottom:1px solid #333;">' +
+                        '<td style="padding:0.4em;">' + fmtTime(s.StartSeconds) + '</td>' +
+                        '<td style="padding:0.4em;">' + fmtTime(s.EndSeconds) + '</td>' +
+                        '<td style="padding:0.4em;">' + s.Category + '</td>' +
+                        '<td style="padding:0.4em;">' + s.Source + '</td>' +
+                        '<td style="padding:0.4em;">' + (s.Note || '') + '</td>' +
+                        '<td style="padding:0.4em;"><button is="emby-button" type="button" class="raised button-cancel emby-button" data-id="' + s.Id + '"><span>Delete</span></button></td>' +
+                        '</tr>';
+                }).join('');
+                Array.prototype.forEach.call(rows.querySelectorAll('button'), function (btn) {
+                    btn.addEventListener('click', function () {
+                        Dashboard.showLoadingMsg();
+                        api('DELETE', 'Items/' + currentItem.Id + '/Filters/' + btn.getAttribute('data-id')).then(function (updated) {
+                            Dashboard.hideLoadingMsg();
+                            renderFilters(updated);
+                        });
+                    });
+                });
+            }
+
+            function addSegment() {
+                if (!currentItem) return;
+                var start = parseTime(q('txtStart').value);
+                var end = parseTime(q('txtEnd').value);
+                if (isNaN(start) || isNaN(end) || end <= start) {
+                    Dashboard.alert({ message: 'Enter a valid start and end time (end after start).' });
+                    return;
+                }
+                Dashboard.showLoadingMsg();
+                api('POST', 'Items/' + currentItem.Id + '/Filters', {
+                    StartSeconds: start,
+                    EndSeconds: end,
+                    Category: q('selCategory').value,
+                    Source: 'Manual',
+                    Note: q('txtNote').value.trim() || null
+                }).then(function (updated) {
+                    Dashboard.hideLoadingMsg();
+                    q('txtStart').value = '';
+                    q('txtEnd').value = '';
+                    q('txtNote').value = '';
+                    renderFilters(updated);
+                });
+            }
+
+            function scanSubtitles() {
+                if (!currentItem) return;
+                Dashboard.showLoadingMsg();
+                api('POST', 'Items/' + currentItem.Id + '/ScanSubtitles').then(function (updated) {
+                    Dashboard.hideLoadingMsg();
+                    renderFilters(updated);
+                    var count = updated.Segments.filter(function (s) { return s.Source === 'Subtitle'; }).length;
+                    Dashboard.alert({ message: count ? ('Found ' + count + ' profanity segment(s).') : 'No profanity found (or no external subtitle file available).' });
+                });
+            }
+
+            function clearFilters() {
+                if (!currentItem) return;
+                Dashboard.showLoadingMsg();
+                api('DELETE', 'Items/' + currentItem.Id + '/Filters').then(function () {
+                    Dashboard.hideLoadingMsg();
+                    loadFilters();
+                });
+            }
+
+            function importEdl() {
+                if (!currentItem) return;
+                var text = q('txtEdl').value.trim();
+                if (!text) return;
+                Dashboard.showLoadingMsg();
+                api('POST', 'Items/' + currentItem.Id + '/ImportEdl', { Text: text, Category: q('selEdlCategory').value }).then(function (updated) {
+                    Dashboard.hideLoadingMsg();
+                    q('txtEdl').value = '';
+                    renderFilters(updated);
+                });
+            }
+
+            var page = document.getElementById('CleanPlayConfigPage');
+            page.addEventListener('pageshow', function () {
+                fillTypeSelect(q('selProfanityType'));
+                fillTypeSelect(q('selNudityType'));
+                fillTypeSelect(q('selViolenceType'));
+                fillTypeSelect(q('selOtherType'));
+                loadConfig();
+            });
+
+            q('CleanPlaySettingsForm').addEventListener('submit', saveConfig);
+            q('btnSearch').addEventListener('click', doSearch);
+            q('txtSearch').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+            q('btnAdd').addEventListener('click', addSegment);
+            q('btnScan').addEventListener('click', scanSubtitles);
+            q('btnClear').addEventListener('click', clearFilters);
+            q('btnImportEdl').addEventListener('click', importEdl);
+        })();
+    </script>
+</div>
+</body>
+</html>
